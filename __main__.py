@@ -40,6 +40,8 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         Ui_MainWindow.__init__(self)
 
         self.main_path = sys.path[0]
+        if len(self.main_path) == 0:
+            self.main_path == os.curdir
 
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
@@ -213,9 +215,9 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 
                 if all_files_there:
                     if "exp_" not in d.lower():
-                        newdir = os.path.join(self.project_path, "Exp_"+d.split("\\")[-1])
+                        newdir = os.path.join(self.project_path, "Exp_"+os.path.split(d)[-1])
                     else:
-                        newdir = os.path.join(self.project_path, d.split("\\")[-1])
+                        newdir = os.path.join(self.project_path, os.path.split(d)[-1])
                     if not os.path.exists(newdir):
                         os.mkdir(newdir)
                     for f in [stimuli_profile, metadata, temperature, arena, tracking]:
@@ -247,25 +249,29 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
                 if "center" not in listed_dir and "dataframe" in listed_dir:
                     item.setBackground(0, QtGui.QColor("lightblue"))
                 if "center" in listed_dir and "dataframe" in listed_dir:
-                    item.setBackground(0, QtGui.QColor("lightgreen"))
+                    item.setBackground(0, QtGui.QColor(0, 255, 68, 50))
                     
         except Exception as e:
             print(e)
             print("No paths set. This is likely not so helpful.")
 
     def display_folder_structure(self, path, tree):
-        for element in os.listdir(path):
+
+        elements = os.listdir(path)
+        elements.sort()
+        elements.reverse()
+        for element in elements:
             path_info = os.path.join(path, element)
             parent_item = QtWidgets.QTreeWidgetItem(tree,  [os.path.basename(element)])
             parent_item.setData(1,0,path_info)
 
             if os.path.isdir(path_info):
                 self.display_folder_structure(path_info, parent_item)
-                parent_item.setIcon(0, QtGui.QIcon(os.path.join(self.main_path, "/icons/folder.ico")))
+                parent_item.setIcon(0, QtGui.QIcon(os.path.join(self.main_path, "./icons/folder.ico")))
 
             else:
                 if path_info.endswith(".avi"):
-                    parent_item.setIcon(0, QtGui.QIcon(os.path.join(self.main_path, "/icons/video.ico")))
+                    parent_item.setIcon(0, QtGui.QIcon(os.path.join(self.main_path, "./icons/video.ico")))
 
                 elif path_info.endswith(".pickle"):
                     parent_item.setIcon(0, QtGui.QIcon(os.path.join(self.main_path, "./icons/pickle.png")))
@@ -284,7 +290,17 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             if text.endswith(".avi"):
                 self.find_center(text)
             elif text.endswith(".txt"):
-                os.popen("notepad "+text)
+                if os.name == "nt":
+                    os.popen("notepad "+text)
+                elif os.name == "posix":
+                    try:
+                        os.popen("gedit "+text)
+                    except:
+                        try:
+                            os.popen("vim "+text)
+                        except Exception as e:
+                            print(e)
+                            
             elif text.endswith(".pickle"):
                 self.pv = PandasViewer(df = text, path = os.path.split(text))
 #                self.dv = DataViewer(df_path = text)
